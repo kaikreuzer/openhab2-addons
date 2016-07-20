@@ -29,7 +29,7 @@ import com.google.common.collect.Sets;
  * The {@link ModbusHandlerFactory} is responsible for creating things and thing
  * handlers.
  *
- * @author vores8 - Initial contribution
+ * @author Dmitry Krasnov - Initial contribution
  */
 public class ModbusHandlerFactory extends BaseThingHandlerFactory {
 

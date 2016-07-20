@@ -15,22 +15,17 @@ import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.types.Command;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import net.wimpi.modbus.procimg.InputRegister;
 import net.wimpi.modbus.util.BitVector;
 
 /**
- * The {@link EndpointHandler} class is responsible
- * for interaction with physical Modbus
- * registers/coils
+ * The {@link EndpointHandler} class is responsible for interaction with physical Modbus registers/coils
  *
  * @author Dmitry Krasnov - Initial contribution
  */
 
 public class EndpointHandler extends BaseThingHandler {
-    private Logger logger = LoggerFactory.getLogger(EndpointHandler.class);
 
     /**
      * readRegister and writeRegister store references to the register in device data space
@@ -44,11 +39,7 @@ public class EndpointHandler extends BaseThingHandler {
     public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(THING_TYPE_ENDPOINT);
 
     private static final String PROP_READREGISTER = "read";
-    private static final String PROP_WRITEREGISTER = "write";
 
-    /**
-     * {@inheritDoc}
-     */
     public EndpointHandler(Thing thing) {
         super(thing);
         readRegister = ((BigDecimal) thing.getConfiguration().get(PROP_READREGISTER)).intValue();
@@ -60,9 +51,6 @@ public class EndpointHandler extends BaseThingHandler {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void initialize() {
         super.initialize();
@@ -71,9 +59,6 @@ public class EndpointHandler extends BaseThingHandler {
         updateStatus(status);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         String channel = channelUID.getId();
@@ -84,9 +69,6 @@ public class EndpointHandler extends BaseThingHandler {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public void update(BitVector storage) {
         boolean b = storage.getBit(readRegister);
         Integer bb = new Integer(b ? 1 : 0);
@@ -99,9 +81,6 @@ public class EndpointHandler extends BaseThingHandler {
 
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public void update(InputRegister[] storage) {
         Integer bb = storage[readRegister].getValue();
         if (!bb.equals(value) || value == null) {

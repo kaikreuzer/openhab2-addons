@@ -27,7 +27,6 @@ import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
-import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.State;
 import org.slf4j.Logger;
@@ -53,8 +52,6 @@ import net.wimpi.modbus.util.BitVector;
 /**
  * The {@link SlaveHandler} is responsible for handling commands, which are
  * sent to one of the channels.
- *
- * @author vores8 - Initial contribution
  */
 public class SlaveHandler extends BaseBridgeHandler implements SlaveConnector {
 
@@ -90,16 +87,10 @@ public class SlaveHandler extends BaseBridgeHandler implements SlaveConnector {
     private BridgeConnector connector = null;
     private boolean writeMultipleRegisters = false;
 
-    /**
-     * {@inheritDoc}
-     */
     void setConnector(BridgeConnector c) {
         this.connector = c;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public SlaveHandler(Bridge thing) {
         super(thing);
         try {
@@ -166,9 +157,9 @@ public class SlaveHandler extends BaseBridgeHandler implements SlaveConnector {
                         ReadInputRegistersResponse responce = (ReadInputRegistersResponse) getModbusData(request);
                         local = responce.getRegisters();
                     }
-                    if (storage == null)
+                    if (storage == null) {
                         storage = local;
-                    else {
+                    } else {
                         synchronized (storage) {
                             storage = local;
                         }
@@ -188,17 +179,12 @@ public class SlaveHandler extends BaseBridgeHandler implements SlaveConnector {
             }
         };
         connector = (BridgeConnector) getBridge().getHandler();
-        Bridge b = getBridge();
-        ThingHandler h = b.getHandler();
 
         pollingJob = scheduler.scheduleAtFixedRate(runnable, 0, refresh, TimeUnit.MILLISECONDS);
         boolean online = connector.isConnected();
         updateStatus(online ? ThingStatus.ONLINE : ThingStatus.OFFLINE);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void dispose() {
         pollingJob.cancel(true);
@@ -229,9 +215,6 @@ public class SlaveHandler extends BaseBridgeHandler implements SlaveConnector {
         return r;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         for (Thing t : this.getBridge().getThings()) {
@@ -239,16 +222,10 @@ public class SlaveHandler extends BaseBridgeHandler implements SlaveConnector {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void handleUpdate(ChannelUID channelUID, State newState) {
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void setCoil(boolean b, int readRegister, int writeRegister) {
         synchronized (storage) {
@@ -285,9 +262,6 @@ public class SlaveHandler extends BaseBridgeHandler implements SlaveConnector {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void setRegister(int value, int readRegister, int writeRegister) {
         /**

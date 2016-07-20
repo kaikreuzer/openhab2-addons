@@ -21,9 +21,7 @@ import net.wimpi.modbus.io.ModbusTransaction;
 import net.wimpi.modbus.net.TCPMasterConnection;
 
 /**
- * The {@link TcpHandler} class is responsible
- * for connection to Modbus device using
- * tcp communications
+ * The {@link TcpHandler} class is responsible for connection to Modbus device using tcp communications.
  *
  * @author Dmitry Krasnov - Initial contribution
  */
@@ -40,21 +38,15 @@ public class TcpHandler extends BaseBridgeHandler implements BridgeConnector {
     private TCPMasterConnection connection = null;
     private ModbusTCPTransaction transaction = new ModbusTCPTransaction();
 
-    /**
-     * {@inheritDoc}
-     */
     public TcpHandler(Bridge thing) {
         super(thing);
         try {
-            address = InetAddress.getByName((String) thing.getConfiguration().get(PROP_ADDRESS));
-            port = ((BigDecimal) thing.getConfiguration().get(PROP_PORT)).intValue();
+            address = InetAddress.getByName((String) getConfig().get(PROP_ADDRESS));
+            port = ((BigDecimal) getConfig().get(PROP_PORT)).intValue();
         } catch (Exception e) {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void initialize() {
         super.initialize();
@@ -66,16 +58,10 @@ public class TcpHandler extends BaseBridgeHandler implements BridgeConnector {
 
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isConnected() {
         return connection == null ? false : connection.isConnected();
@@ -86,9 +72,10 @@ public class TcpHandler extends BaseBridgeHandler implements BridgeConnector {
      */
     @Override
     public boolean connect() {
-        if (connection == null)
+        if (connection == null) {
             connection = new TCPMasterConnection(address);
-        if (!connection.isConnected())
+        }
+        if (!connection.isConnected()) {
             try {
                 connection.setPort(port);
                 connection.connect();
@@ -100,28 +87,20 @@ public class TcpHandler extends BaseBridgeHandler implements BridgeConnector {
                 updateStatus(ThingStatus.OFFLINE);
                 return false;
             }
+        }
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void resetConnection() {
         connection = null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public ModbusTransaction getTransaction() {
         return transaction;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isHeadless() {
         return false;
