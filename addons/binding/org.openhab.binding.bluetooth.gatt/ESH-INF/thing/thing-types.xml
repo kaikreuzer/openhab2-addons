@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="bluetooth"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+	<!-- Xiaomi Thing Types -->
+	<thing-type id="MJ_HT_V1">
+		<label>Xiaomi MJ_HT_V1</label>
+		<description>Xiaomi temperature and humidity sensor</description>
+
+		<channels>
+            <channel id="rssi" typeId="rssi" />
+            <channel id="battery" typeId="system.battery-level" />
+		</channels>
+
+        <config-description>
+            <parameter name="address" type="text">
+                <label>Address</label>
+                <description>Bluetooth address in XX:XX:XX:XX:XX:XX format</description>
+            </parameter>
+        </config-description>
+
+	</thing-type>
+
+</thing:thing-descriptions>
