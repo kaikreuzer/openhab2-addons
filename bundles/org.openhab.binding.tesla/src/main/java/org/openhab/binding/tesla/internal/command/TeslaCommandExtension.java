@@ -17,6 +17,8 @@ import static org.openhab.binding.tesla.internal.TeslaBindingConstants.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.client.Client;
@@ -26,13 +28,21 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.apache.commons.lang.StringUtils;
-import org.eclipse.smarthome.core.storage.Storage;
-import org.eclipse.smarthome.core.storage.StorageService;
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.smarthome.config.discovery.DiscoveryListener;
+import org.eclipse.smarthome.config.discovery.DiscoveryResult;
+import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
+import org.eclipse.smarthome.config.discovery.DiscoveryService;
+import org.eclipse.smarthome.config.discovery.ScanListener;
+import org.eclipse.smarthome.core.thing.ThingTypeUID;
+import org.eclipse.smarthome.core.thing.ThingUID;
+import org.eclipse.smarthome.core.util.UIDUtils;
 import org.eclipse.smarthome.io.console.Console;
 import org.eclipse.smarthome.io.console.extensions.AbstractConsoleCommandExtension;
 import org.eclipse.smarthome.io.console.extensions.ConsoleCommandExtension;
 import org.openhab.binding.tesla.internal.TeslaBindingConstants;
+import org.openhab.binding.tesla.internal.discovery.TeslaAccountDiscoveryService;
 import org.openhab.binding.tesla.internal.protocol.TokenRequest;
 import org.openhab.binding.tesla.internal.protocol.TokenRequestPassword;
 import org.openhab.binding.tesla.internal.protocol.TokenResponse;
@@ -46,22 +56,33 @@ import com.google.gson.Gson;
 /**
  * Console commands for interacting with the Tesla integration
  *
- * @author Nicolai Grødum
+ * @author Nicolai Grødum - Initial contribution
+ * @author Kai Kreuzer - refactored to use Tesla account thing
  */
 @Component(service = ConsoleCommandExtension.class, immediate = true)
-public class TeslaCommandExtension extends AbstractConsoleCommandExtension {
+public class TeslaCommandExtension extends AbstractConsoleCommandExtension implements DiscoveryService {
 
-    private static final String CMD_LOGON = "logon";
+    private static final String CMD_LOGIN = "login";
 
     private final Logger logger = LoggerFactory.getLogger(TeslaCommandExtension.class);
 
-    private StorageService storageService;
     private final Client teslaClient = ClientBuilder.newClient();
     private final WebTarget teslaTarget = teslaClient.target(URI_OWNERS);
     private final WebTarget tokenTarget = teslaTarget.path(URI_ACCESS_TOKEN);
 
+    private TeslaAccountDiscoveryService teslaAccountDiscoveryService;
+
     public TeslaCommandExtension() {
         super("tesla", "Interact with the Tesla integration.");
+    }
+
+    @Reference
+    protected void setTeslaAccountDiscoveryService(TeslaAccountDiscoveryService ds) {
+        this.teslaAccountDiscoveryService = ds;
+    }
+
+    protected void unetTeslaAccountDiscoveryService(TeslaAccountDiscoveryService ds) {
+        this.teslaAccountDiscoveryService = null;
     }
 
     @Override
@@ -69,8 +90,8 @@ public class TeslaCommandExtension extends AbstractConsoleCommandExtension {
         if (args.length > 0) {
             String subCommand = args[0];
             switch (subCommand) {
-                case CMD_LOGON:
-                    if (args.length == 2) {
+                case CMD_LOGIN:
+                    if (args.length == 1) {
                         try {
                             BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
                             console.print("Username (email): ");
@@ -81,13 +102,13 @@ public class TeslaCommandExtension extends AbstractConsoleCommandExtension {
 
                             String pwd = br.readLine();
                             console.println("");
-                            console.println("Attempting logon...");
-                            logon(console, args[1], username, pwd);
+                            console.println("Attempting login...");
+                            login(console, username, pwd);
                         } catch (Exception e) {
                             console.println(e.toString());
                         }
-                    } else if (args.length == 4) {
-                        logon(console, args[1], args[2], args[3]);
+                    } else if (args.length == 3) {
+                        login(console, args[1], args[2]);
                     } else {
                         printUsage(console);
                     }
@@ -103,20 +124,11 @@ public class TeslaCommandExtension extends AbstractConsoleCommandExtension {
 
     @Override
     public List<String> getUsages() {
-        return Arrays.asList(new String[] { buildCommandUsage(CMD_LOGON + " <thingid> [<user email>] [<password>]",
-                "Authenticates and stores the access and refresh token. Does not store the username/password."), });
+        return Arrays.asList(new String[] { buildCommandUsage(CMD_LOGIN + " [<user email>] [<password>]",
+                "Authenticates the user and provides a refresh token."), });
     }
 
-    @Reference
-    public void setStorageService(StorageService storageService) {
-        this.storageService = storageService;
-    }
-
-    public void unsetStorageService(StorageService storageService) {
-        this.storageService = null;
-    }
-
-    private void logon(Console console, String thingId, String username, String password) {
+    private void login(Console console, String username, String password) {
         try {
             Gson gson = new Gson();
 
@@ -129,21 +141,57 @@ public class TeslaCommandExtension extends AbstractConsoleCommandExtension {
                 if (response.getStatus() == 200 && response.hasEntity()) {
                     String responsePayLoad = response.readEntity(String.class);
                     TokenResponse tokenResponse = gson.fromJson(responsePayLoad.trim(), TokenResponse.class);
+                    console.println("Refresh token: " + tokenResponse.refresh_token);
 
-                    if (tokenResponse != null && !StringUtils.isEmpty(tokenResponse.access_token)) {
-                        Storage storage = storageService.getStorage(TeslaBindingConstants.BINDING_ID);
-                        storage.put(thingId, gson.toJson(tokenResponse));
-                    }
-                    console.println("Successfully logged on and stored token.");
-
+                    ThingUID thingUID = new ThingUID(TeslaBindingConstants.THING_TYPE_ACCOUNT,
+                            UIDUtils.encode(username));
+                    DiscoveryResult result = DiscoveryResultBuilder.create(thingUID).withLabel("Tesla Account")
+                            .withProperty(TeslaBindingConstants.CONFIG_REFRESHTOKEN, tokenResponse.refresh_token)
+                            .withProperty(TeslaBindingConstants.CONFIG_USERNAME, username)
+                            .withRepresentationProperty(TeslaBindingConstants.CONFIG_USERNAME).build();
+                    teslaAccountDiscoveryService.thingDiscovered(result);
                 } else {
                     console.println(
-                            "Failure:" + response.getStatus() + " " + response.getStatusInfo().getReasonPhrase());
+                            "Failure: " + response.getStatus() + " " + response.getStatusInfo().getReasonPhrase());
                 }
             }
         } catch (Exception e) {
-            console.println("Failed to store token:" + e.getMessage());
-            logger.error("Could not get Tesla token", e);
+            console.println("Failed to retrieve token: " + e.getMessage());
+            logger.error("Could not get refresh token.", e);
         }
+    }
+
+    @Override
+    public Collection<@NonNull ThingTypeUID> getSupportedThingTypes() {
+        return Collections.singleton(TeslaBindingConstants.THING_TYPE_ACCOUNT);
+    }
+
+    @Override
+    public int getScanTimeout() {
+        return 0;
+    }
+
+    @Override
+    public boolean isBackgroundDiscoveryEnabled() {
+        return false;
+    }
+
+    @Override
+    public void startScan(@Nullable ScanListener listener) {
+    }
+
+    @Override
+    public void abortScan() {
+    }
+
+    @Override
+    public void addDiscoveryListener(@Nullable DiscoveryListener listener) {
+
+    }
+
+    @Override
+    public void removeDiscoveryListener(@Nullable DiscoveryListener listener) {
+        // TODO Auto-generated method stub
+
     }
 }
