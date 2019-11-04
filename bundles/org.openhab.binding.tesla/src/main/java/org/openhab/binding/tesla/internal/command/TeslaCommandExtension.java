@@ -17,8 +17,6 @@ import static org.openhab.binding.tesla.internal.TeslaBindingConstants.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.client.Client;
@@ -28,14 +26,8 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.smarthome.config.discovery.DiscoveryListener;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
-import org.eclipse.smarthome.config.discovery.DiscoveryService;
-import org.eclipse.smarthome.config.discovery.ScanListener;
-import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.util.UIDUtils;
 import org.eclipse.smarthome.io.console.Console;
@@ -60,7 +52,7 @@ import com.google.gson.Gson;
  * @author Kai Kreuzer - refactored to use Tesla account thing
  */
 @Component(service = ConsoleCommandExtension.class, immediate = true)
-public class TeslaCommandExtension extends AbstractConsoleCommandExtension implements DiscoveryService {
+public class TeslaCommandExtension extends AbstractConsoleCommandExtension {
 
     private static final String CMD_LOGIN = "login";
 
@@ -159,39 +151,5 @@ public class TeslaCommandExtension extends AbstractConsoleCommandExtension imple
             console.println("Failed to retrieve token: " + e.getMessage());
             logger.error("Could not get refresh token.", e);
         }
-    }
-
-    @Override
-    public Collection<@NonNull ThingTypeUID> getSupportedThingTypes() {
-        return Collections.singleton(TeslaBindingConstants.THING_TYPE_ACCOUNT);
-    }
-
-    @Override
-    public int getScanTimeout() {
-        return 0;
-    }
-
-    @Override
-    public boolean isBackgroundDiscoveryEnabled() {
-        return false;
-    }
-
-    @Override
-    public void startScan(@Nullable ScanListener listener) {
-    }
-
-    @Override
-    public void abortScan() {
-    }
-
-    @Override
-    public void addDiscoveryListener(@Nullable DiscoveryListener listener) {
-
-    }
-
-    @Override
-    public void removeDiscoveryListener(@Nullable DiscoveryListener listener) {
-        // TODO Auto-generated method stub
-
     }
 }
