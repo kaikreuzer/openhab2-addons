@@ -163,14 +163,14 @@
 		<label>Charging State</label>
 		<description>“Starting”, “Complete”, “Charging”, “Disconnected”, “Stopped”, “NoPower”</description>
 		<state readOnly="true">
-		  <options>
-		      <option value="Starting">Starting</option>
-              <option value="Complete">Complete</option>
-              <option value="Charging">Charging</option>
-              <option value="Disconnected">Disconnected</option>
-              <option value="Stopped">Stopped</option>
-              <option value="NoPower">No Power</option>
-		  </options>
+			<options>
+				<option value="Starting">Starting</option>
+				<option value="Complete">Complete</option>
+				<option value="Charging">Charging</option>
+				<option value="Disconnected">Disconnected</option>
+				<option value="Stopped">Stopped</option>
+				<option value="NoPower">No Power</option>
+			</options>
 		</state>
 	</channel-type>
 	<channel-type id="chargetomax" advanced="true">
@@ -218,7 +218,7 @@
 		<item-type>Switch</item-type>
 		<label>Climate</label>
 		<description>Climate status indicator</description>
-        <state readOnly="true"></state>
+		<state readOnly="true"></state>
 	</channel-type>
 	<channel-type id="driverfrontdoor" advanced="true">
 		<item-type>Contact</item-type>
