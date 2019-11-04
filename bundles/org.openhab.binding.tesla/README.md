@@ -73,7 +73,7 @@ All vehicles support a huge number of channels - the following list shows the st
 | odometer | Number:Length | Odometer | Odometer of the vehicle |
 | speed | Number:Speed | Speed | Vehicle speed |
 
-Additionally, these advanced channels are available:
+Additionally, these advanced channels are available (while not all of them are available on all vehicle types, like e.g. the sunroof):
 
 | Channel ID      | Item Type | Label | Description                                                                                                                 |
 |-----------------|-----------|-------|----------------------------------------------------------------------------------------------------------------------|
