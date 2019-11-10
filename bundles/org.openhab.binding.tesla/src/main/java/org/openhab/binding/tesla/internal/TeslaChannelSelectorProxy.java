@@ -291,11 +291,7 @@ public class TeslaChannelSelectorProxy {
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);
                 BigDecimal value = ((DecimalType) someState).toBigDecimal();
-                if (properties.containsKey("temperatureunits") && properties.get("temperatureunits").equals("F")) {
-                    return new QuantityType<>(value, ImperialUnits.FAHRENHEIT);
-                } else {
-                    return new QuantityType<>(value, SIUnits.CELSIUS);
-                }
+                return new QuantityType<>(value, SIUnits.CELSIUS);
             }
         },
         ELEVATION("elevation", "location", DecimalType.class, false) {
@@ -478,11 +474,7 @@ public class TeslaChannelSelectorProxy {
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);
                 BigDecimal value = ((DecimalType) someState).toBigDecimal();
-                if (properties.containsKey("temperatureunits") && properties.get("temperatureunits").equals("F")) {
-                    return new QuantityType<>(value, ImperialUnits.FAHRENHEIT);
-                } else {
-                    return new QuantityType<>(value, SIUnits.CELSIUS);
-                }
+                return new QuantityType<>(value, SIUnits.CELSIUS);
             }
         },
         LAST_AUTOPARK_ERROR("last_autopark_error", "lastautoparkerror", StringType.class, false),
@@ -670,11 +662,7 @@ public class TeslaChannelSelectorProxy {
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);
                 BigDecimal value = ((DecimalType) someState).toBigDecimal();
-                if (properties.containsKey("temperatureunits") && properties.get("temperatureunits").equals("F")) {
-                    return new QuantityType<>(value, ImperialUnits.FAHRENHEIT);
-                } else {
-                    return new QuantityType<>(value, SIUnits.CELSIUS);
-                }
+                return new QuantityType<>(value, SIUnits.CELSIUS);
             }
         },
         PARSED_CALENDAR("parsed_calendar_supported", "parsedcalendar", OnOffType.class, false) {
@@ -694,11 +682,7 @@ public class TeslaChannelSelectorProxy {
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);
                 BigDecimal value = ((DecimalType) someState).toBigDecimal();
-                if (properties.containsKey("temperatureunits") && properties.get("temperatureunits").equals("F")) {
-                    return new QuantityType<>(value, ImperialUnits.FAHRENHEIT);
-                } else {
-                    return new QuantityType<>(value, SIUnits.CELSIUS);
-                }
+                return new QuantityType<>(value, SIUnits.CELSIUS);
             }
         },
         PERF_CONFIG("perf_config", "configuration", StringType.class, true),
@@ -950,11 +934,7 @@ public class TeslaChannelSelectorProxy {
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);
                 BigDecimal value = ((DecimalType) someState).toBigDecimal();
-                if (properties.containsKey("temperatureunits") && properties.get("temperatureunits").equals("F")) {
-                    return new QuantityType<>(value, ImperialUnits.FAHRENHEIT);
-                } else {
-                    return new QuantityType<>(value, SIUnits.CELSIUS);
-                }
+                return new QuantityType<>(value, SIUnits.CELSIUS);
             }
         },
         TIME_TO_FULL_CHARGE("time_to_full_charge", "timetofullcharge", DecimalType.class, false),
