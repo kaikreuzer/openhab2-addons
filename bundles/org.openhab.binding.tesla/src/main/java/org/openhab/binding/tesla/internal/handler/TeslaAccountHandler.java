@@ -57,6 +57,7 @@ import org.openhab.binding.tesla.internal.protocol.TokenRequestPassword;
 import org.openhab.binding.tesla.internal.protocol.TokenRequestRefreshToken;
 import org.openhab.binding.tesla.internal.protocol.TokenResponse;
 import org.openhab.binding.tesla.internal.protocol.Vehicle;
+import org.openhab.binding.tesla.internal.protocol.VehicleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -215,8 +216,13 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
             Vehicle[] vehicleArray = gson.fromJson(jsonObject.getAsJsonArray("response"), Vehicle[].class);
 
             for (Vehicle vehicle : vehicleArray) {
+                String responseString = invokeAndParse(vehicle.id, VEHICLE_CONFIG, null, dataRequestTarget);
+                if (StringUtils.isBlank(responseString)) {
+                    continue;
+                }
+                VehicleConfig vehicleConfig = gson.fromJson(responseString, VehicleConfig.class);
                 for (VehicleListener listener : vehicleListeners) {
-                    listener.vehicleFound(vehicle);
+                    listener.vehicleFound(vehicle, vehicleConfig);
                 }
                 for (Thing vehicleThing : getThing().getThings()) {
                     if (vehicle.vin.equals(vehicleThing.getConfiguration().get(VIN))) {
