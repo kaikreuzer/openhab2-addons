@@ -12,7 +12,6 @@
  */
 package org.openhab.binding.tesla.internal.discovery;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -30,7 +29,10 @@ import org.openhab.binding.tesla.internal.TeslaHandlerFactory;
 import org.openhab.binding.tesla.internal.handler.TeslaAccountHandler;
 import org.openhab.binding.tesla.internal.handler.VehicleListener;
 import org.openhab.binding.tesla.internal.protocol.Vehicle;
+import org.openhab.binding.tesla.internal.protocol.VehicleConfig;
 import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This service is used by {@link TeslaAccountHandler} instances in order to
@@ -42,17 +44,7 @@ import org.osgi.service.component.annotations.Component;
 @Component(service = ThingHandlerService.class)
 public class TeslaVehicleDiscoveryService extends AbstractDiscoveryService
         implements DiscoveryService, VehicleListener, ThingHandlerService {
-
-    private static final Map<String, ThingTypeUID> modelMap = new HashMap<>();
-    static {
-        // see https://tesla-api.timdorr.com/vehicle/optioncodes
-        modelMap.put("MDLS", TeslaBindingConstants.THING_TYPE_MODELS);
-        modelMap.put("MS03", TeslaBindingConstants.THING_TYPE_MODELS);
-        modelMap.put("MS04", TeslaBindingConstants.THING_TYPE_MODELS);
-        modelMap.put("MDLX", TeslaBindingConstants.THING_TYPE_MODELX);
-        modelMap.put("MDL3", TeslaBindingConstants.THING_TYPE_MODEL3);
-        modelMap.put("MDLY", TeslaBindingConstants.THING_TYPE_MODELY);
-    }
+    private final Logger logger = LoggerFactory.getLogger(TeslaVehicleDiscoveryService.class);
 
     public TeslaVehicleDiscoveryService() throws IllegalArgumentException {
         super(TeslaHandlerFactory.SUPPORTED_THING_TYPES_UIDS, 10, true);
@@ -90,21 +82,27 @@ public class TeslaVehicleDiscoveryService extends AbstractDiscoveryService
     }
 
     @Override
-    public void vehicleFound(Vehicle vehicle) {
-        ThingTypeUID type = identifyModel(vehicle);
+    public void vehicleFound(Vehicle vehicle, VehicleConfig vehicleConfig) {
+        ThingTypeUID type = identifyModel(vehicleConfig);
         ThingUID thingUID = new ThingUID(type, handler.getThing().getUID(), vehicle.vin);
         DiscoveryResult discoveryResult = DiscoveryResultBuilder.create(thingUID).withLabel(vehicle.display_name)
                 .withBridge(handler.getThing().getUID()).withProperty(TeslaBindingConstants.VIN, vehicle.vin).build();
         thingDiscovered(discoveryResult);
     }
 
-    private ThingTypeUID identifyModel(Vehicle vehicle) {
-        String options = vehicle.option_codes;
-        for (Map.Entry<String, ThingTypeUID> entry : modelMap.entrySet()) {
-            if (options.contains(entry.getKey())) {
-                return entry.getValue();
-            }
+    private ThingTypeUID identifyModel(VehicleConfig vehicleConfig) {
+        logger.debug("Found a {} vehicle", vehicleConfig.car_type);
+        switch (vehicleConfig.car_type) {
+            case "models":
+                return TeslaBindingConstants.THING_TYPE_MODELS;
+            case "modelx":
+                return TeslaBindingConstants.THING_TYPE_MODELX;
+            case "model3":
+                return TeslaBindingConstants.THING_TYPE_MODEL3;
+            case "modely":
+                return TeslaBindingConstants.THING_TYPE_MODELY;
+            default:
+                return null;
         }
-        return null;
     }
 }

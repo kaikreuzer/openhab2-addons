@@ -13,6 +13,7 @@
 package org.openhab.binding.tesla.internal.handler;
 
 import org.openhab.binding.tesla.internal.protocol.Vehicle;
+import org.openhab.binding.tesla.internal.protocol.VehicleConfig;
 
 /**
  * The {@link VehicleListener} interface can be implemented by classes that want to be informed about
@@ -27,5 +28,5 @@ public interface VehicleListener {
      *
      * @param vehicle a vehicle that was found within an account.
      */
-    void vehicleFound(Vehicle vehicle);
+    void vehicleFound(Vehicle vehicle, VehicleConfig vehicleConfig);
 }
