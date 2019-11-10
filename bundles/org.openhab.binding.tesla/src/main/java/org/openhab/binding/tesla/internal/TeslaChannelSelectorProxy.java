@@ -324,11 +324,7 @@ public class TeslaChannelSelectorProxy {
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);
                 BigDecimal value = ((DecimalType) someState).toBigDecimal();
-                if (properties.containsKey("distanceunits") && properties.get("distanceunits").equals("km/hr")) {
-                    return new QuantityType<>(value, MetricPrefix.KILO(SIUnits.METRE));
-                } else {
-                    return new QuantityType<>(value, ImperialUnits.MILE);
-                }
+                return new QuantityType<>(value, ImperialUnits.MILE);
             }
         },
         EU_VEHICLE("eu_vehicle", "european", OnOffType.class, true) {
