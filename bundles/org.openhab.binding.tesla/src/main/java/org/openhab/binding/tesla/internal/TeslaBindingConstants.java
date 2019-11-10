@@ -67,6 +67,7 @@ public class TeslaBindingConstants {
     public static final String GUI_STATE = "gui_settings";
     public static final String MOBILE_ENABLED_STATE = "mobile_enabled";
     public static final String VEHICLE_STATE = "vehicle_state";
+    public static final String VEHICLE_CONFIG = "vehicle_config";
 
     public static final String BINDING_ID = "tesla";
 
