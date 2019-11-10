@@ -17,12 +17,11 @@ import static org.openhab.binding.tesla.internal.TeslaBindingConstants.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +40,6 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -79,18 +77,19 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
     public static final int API_MAXIMUM_ERRORS_IN_INTERVAL = 2;
     public static final int API_ERROR_INTERVAL_SECONDS = 15;
     private static final int CONNECT_RETRY_INTERVAL = 15000;
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final Logger logger = LoggerFactory.getLogger(TeslaAccountHandler.class);
 
     // REST Client API variables
-    protected final Client teslaClient = ClientBuilder.newClient();
-    public final WebTarget teslaTarget = teslaClient.target(URI_OWNERS);
-    public final WebTarget tokenTarget = teslaTarget.path(URI_ACCESS_TOKEN);
-    public final WebTarget vehiclesTarget = teslaTarget.path(API_VERSION).path(VEHICLES);
-    public final WebTarget vehicleTarget = vehiclesTarget.path(PATH_VEHICLE_ID);
-    public final WebTarget dataRequestTarget = vehicleTarget.path(PATH_DATA_REQUEST);
-    public final WebTarget commandTarget = vehicleTarget.path(PATH_COMMAND);
-    public final WebTarget wakeUpTarget = vehicleTarget.path(PATH_WAKE_UP);
+    private final Client teslaClient = ClientBuilder.newClient();
+    private final WebTarget teslaTarget = teslaClient.target(URI_OWNERS);
+    private final WebTarget tokenTarget = teslaTarget.path(URI_ACCESS_TOKEN);
+    final WebTarget vehiclesTarget = teslaTarget.path(API_VERSION).path(VEHICLES);
+    final WebTarget vehicleTarget = vehiclesTarget.path(PATH_VEHICLE_ID);
+    final WebTarget dataRequestTarget = vehicleTarget.path(PATH_DATA_REQUEST);
+    final WebTarget commandTarget = vehicleTarget.path(PATH_COMMAND);
+    final WebTarget wakeUpTarget = vehicleTarget.path(PATH_WAKE_UP);
 
     // Threading and Job related variables
     protected ScheduledFuture<?> connectJob;
@@ -103,9 +102,11 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
     protected int eventIntervalErrors;
     protected ReentrantLock lock;
 
-    protected Gson gson = new Gson();
+    private final Gson gson = new Gson();
+    private final JsonParser parser = new JsonParser();
+
     private TokenResponse logonToken;
-    private Set<VehicleListener> vehicleListeners = new HashSet<>();
+    private final Set<VehicleListener> vehicleListeners = new HashSet<>();
 
     public TeslaAccountHandler(Bridge bridge) {
         super(bridge);
@@ -210,26 +211,22 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
                 return null;
             }
 
-            JsonParser parser = new JsonParser();
-
             JsonObject jsonObject = parser.parse(response.readEntity(String.class)).getAsJsonObject();
             Vehicle[] vehicleArray = gson.fromJson(jsonObject.getAsJsonArray("response"), Vehicle[].class);
 
-            for (int i = 0; i < vehicleArray.length; i++) {
+            for (Vehicle vehicle : vehicleArray) {
                 for (VehicleListener listener : vehicleListeners) {
-                    listener.vehicleFound(vehicleArray[i]);
+                    listener.vehicleFound(vehicle);
                 }
-                for (Thing vehicle : getThing().getThings()) {
-                    if (vehicleArray[i].vin.equals(vehicle.getConfiguration().get(VIN))) {
-                        TeslaVehicleHandler vehicleHandler = (TeslaVehicleHandler) vehicle.getHandler();
+                for (Thing vehicleThing : getThing().getThings()) {
+                    if (vehicle.vin.equals(vehicleThing.getConfiguration().get(VIN))) {
+                        TeslaVehicleHandler vehicleHandler = (TeslaVehicleHandler) vehicleThing.getHandler();
                         if (vehicleHandler != null) {
-                            logger.debug("Querying the vehicle: VIN {}", vehicleArray[i].vin);
-                            String vehicleJSON = gson.toJson(vehicleArray[i]);
+                            logger.debug("Querying the vehicle: VIN {}", vehicle.vin);
+                            String vehicleJSON = gson.toJson(vehicle);
                             vehicleHandler.parseAndUpdate("queryVehicle", null, vehicleJSON);
-                            if (logger.isTraceEnabled()) {
-                                logger.trace("Vehicle is id {}/vehicle_id {}/tokens {}", vehicleArray[i].id,
-                                        vehicleArray[i].vehicle_id, vehicleArray[i].tokens);
-                            }
+                            logger.trace("Vehicle is id {}/vehicle_id {}/tokens {}", vehicle.id, vehicle.vehicle_id,
+                                    vehicle.tokens);
                         }
                     }
                 }
@@ -246,20 +243,16 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
 
     private ThingStatusInfo authenticate() {
         TokenResponse token = logonToken;
-        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 
         boolean hasExpired = true;
 
         if (token != null) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(token.created_at * 1000);
-            logger.debug("Found a request token created at {}", dateFormatter.format(calendar.getTime()));
-            calendar.setTimeInMillis(token.created_at * 1000 + 60 * token.expires_in);
+            Instant tokenCreationInstant = Instant.ofEpochMilli(token.created_at * 1000);
+            logger.debug("Found a request token created at {}", dateFormatter.format(tokenCreationInstant));
+            Instant tokenExpiresInstant = Instant.ofEpochMilli(token.created_at * 1000 + 60 * token.expires_in);
 
-            Date now = new Date();
-
-            if (calendar.getTime().before(now)) {
-                logger.debug("The token has expired at {}", dateFormatter.format(calendar.getTime()));
+            if (tokenExpiresInstant.isBefore(Instant.now())) {
+                logger.debug("The token has expired at {}", dateFormatter.format(tokenExpiresInstant));
                 hasExpired = true;
             } else {
                 hasExpired = false;
@@ -400,22 +393,19 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
                 }
             }
 
-            JsonParser parser = new JsonParser();
-
             if (!checkResponse(response, false)) {
-                logger.debug("An error occurred while communicating with the vehicle during request {}: {}:{}",
-                        new Object[] { command, (response != null) ? response.getStatus() : "",
-                                (response != null) ? response.getStatusInfo() : "No Response" });
+                logger.debug("An error occurred while communicating with the vehicle during request {}: {}:{}", command,
+                        (response != null) ? response.getStatus() : "",
+                        (response != null) ? response.getStatusInfo() : "No Response");
                 return null;
             }
 
             try {
                 JsonObject jsonObject = parser.parse(response.readEntity(String.class)).getAsJsonObject();
-                logger.trace("Request : {}:{}:{} yields {}",
-                        new Object[] { command, payLoad, target.toString(), jsonObject.get("response").toString() });
+                logger.trace("Request : {}:{}:{} yields {}", command, payLoad, target, jsonObject.get("response"));
                 return jsonObject.get("response").toString();
             } catch (Exception e) {
-                logger.error("An exception occurred while invoking a REST request : '{}'", e.getMessage());
+                logger.error("An exception occurred while invoking a REST request: '{}'", e.getMessage());
             }
         }
 
@@ -443,7 +433,7 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
                         for (Vehicle vehicle : queryVehicles()) {
                             Bridge bridge = getBridge();
                             if (bridge != null) {
-                                List<@NonNull Thing> things = bridge.getThings();
+                                List<Thing> things = bridge.getThings();
                                 for (int i = 0; i < things.size(); i++) {
                                     Thing thing = things.get(i);
                                     TeslaVehicleHandler handler = (TeslaVehicleHandler) thing.getHandler();
@@ -531,7 +521,7 @@ public class TeslaAccountHandler extends BaseBridgeHandler {
                     }
                 }
             } catch (Exception e) {
-                logger.error("An exception occurred while executing a request to the vehicle: '{}'", e.getMessage());
+                logger.error("An exception occurred while executing a request to the vehicle: '{}'", e.getMessage(), e);
             }
         }
 
