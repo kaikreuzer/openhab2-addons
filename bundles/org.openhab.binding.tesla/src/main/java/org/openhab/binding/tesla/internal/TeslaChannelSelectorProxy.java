@@ -29,6 +29,7 @@ import org.eclipse.smarthome.core.library.types.QuantityType;
 import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.library.unit.ImperialUnits;
 import org.eclipse.smarthome.core.library.unit.SIUnits;
+import org.eclipse.smarthome.core.library.unit.SmartHomeUnits;
 import org.eclipse.smarthome.core.types.State;
 import org.eclipse.smarthome.core.types.Type;
 
@@ -311,14 +312,17 @@ public class TeslaChannelSelectorProxy {
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);
                 BigDecimal value = ((DecimalType) someState).toBigDecimal();
-                if (properties.containsKey("distanceunits") && properties.get("distanceunits").equals("km/hr")) {
-                    return new QuantityType<>(value, MetricPrefix.KILO(SIUnits.METRE));
-                } else {
-                    return new QuantityType<>(value, ImperialUnits.MILE);
-                }
+                return new QuantityType<>(value, ImperialUnits.MILE);
             }
         },
-        EST_HEADING("est_heading", "estimatedheading", DecimalType.class, false),
+        EST_HEADING("est_heading", "headingestimation", DecimalType.class, false) {
+            @Override
+            public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
+                State someState = super.getState(s);
+                BigDecimal value = ((DecimalType) someState).toBigDecimal();
+                return new QuantityType<>(value, SmartHomeUnits.DEGREE_ANGLE);
+            }
+        },
         EST_RANGE("est_range", "estimatedrange", DecimalType.class, false) {
             @Override
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
@@ -429,7 +433,14 @@ public class TeslaChannelSelectorProxy {
                 return super.getState(s);
             }
         },
-        HEADING("heading", "heading", DecimalType.class, false),
+        HEADING("heading", "heading", DecimalType.class, false) {
+            @Override
+            public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
+                State someState = super.getState(s);
+                BigDecimal value = ((DecimalType) someState).toBigDecimal();
+                return new QuantityType<>(value, SmartHomeUnits.DEGREE_ANGLE);
+            }
+        },
         HONK_HORN(null, "honkhorn", OnOffType.class, false) {
             @Override
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
