@@ -134,7 +134,8 @@ public class TeslaVehicleHandler extends BaseThingHandler {
     protected ScheduledFuture<?> fastStateJob;
     protected ScheduledFuture<?> slowStateJob;
 
-    private Gson gson = new Gson();
+    private final Gson gson = new Gson();
+    private final JsonParser parser = new JsonParser();
 
     public TeslaVehicleHandler(Thing thing) {
         super(thing);
@@ -622,20 +623,12 @@ public class TeslaVehicleHandler extends BaseThingHandler {
     }
 
     public void setMaxRangeCharging(boolean b) {
-        if (b) {
-            sendCommand(COMMAND_CHARGE_MAX, account.commandTarget);
-        } else {
-            sendCommand(COMMAND_CHARGE_STD, account.commandTarget);
-        }
+        sendCommand(b ? COMMAND_CHARGE_MAX : COMMAND_CHARGE_STD, account.commandTarget);
         requestData(CHARGE_STATE);
     }
 
     public void charge(boolean b) {
-        if (b) {
-            sendCommand(COMMAND_CHARGE_START, account.commandTarget);
-        } else {
-            sendCommand(COMMAND_CHARGE_STOP, account.commandTarget);
-        }
+        sendCommand(b ? COMMAND_CHARGE_START : COMMAND_CHARGE_STOP, account.commandTarget);
         requestData(CHARGE_STATE);
     }
 
@@ -653,20 +646,12 @@ public class TeslaVehicleHandler extends BaseThingHandler {
     }
 
     public void lockDoors(boolean b) {
-        if (b) {
-            sendCommand(COMMAND_DOOR_LOCK, account.commandTarget);
-        } else {
-            sendCommand(COMMAND_DOOR_UNLOCK, account.commandTarget);
-        }
+        sendCommand(b ? COMMAND_DOOR_LOCK : COMMAND_DOOR_UNLOCK, account.commandTarget);
         requestData(VEHICLE_STATE);
     }
 
     public void autoConditioning(boolean b) {
-        if (b) {
-            sendCommand(COMMAND_AUTO_COND_START, account.commandTarget);
-        } else {
-            sendCommand(COMMAND_AUTO_COND_STOP, account.commandTarget);
-        }
+        sendCommand(b ? COMMAND_AUTO_COND_START : COMMAND_AUTO_COND_STOP, account.commandTarget);
         requestData(CLIMATE_STATE);
     }
 
@@ -689,21 +674,19 @@ public class TeslaVehicleHandler extends BaseThingHandler {
                 return null;
             }
 
-            JsonParser parser = new JsonParser();
-
             JsonObject jsonObject = parser.parse(response.readEntity(String.class)).getAsJsonObject();
             Vehicle[] vehicleArray = gson.fromJson(jsonObject.getAsJsonArray("response"), Vehicle[].class);
 
-            for (int i = 0; i < vehicleArray.length; i++) {
-                logger.debug("Querying the vehicle: VIN {}", vehicleArray[i].vin);
-                if (vehicleArray[i].vin.equals(getConfig().get(VIN))) {
-                    vehicleJSON = gson.toJson(vehicleArray[i]);
+            for (Vehicle vehicle : vehicleArray) {
+                logger.debug("Querying the vehicle: VIN {}", vehicle.vin);
+                if (vehicle.vin.equals(getConfig().get(VIN))) {
+                    vehicleJSON = gson.toJson(vehicle);
                     parseAndUpdate("queryVehicle", null, vehicleJSON);
                     if (logger.isTraceEnabled()) {
-                        logger.trace("Vehicle is id {}/vehicle_id {}/tokens {}", vehicleArray[i].id,
-                                vehicleArray[i].vehicle_id, vehicleArray[i].tokens);
+                        logger.trace("Vehicle is id {}/vehicle_id {}/tokens {}", vehicle.id, vehicle.vehicle_id,
+                                vehicle.tokens);
                     }
-                    return vehicleArray[i];
+                    return vehicle;
                 }
             }
         }
@@ -718,7 +701,6 @@ public class TeslaVehicleHandler extends BaseThingHandler {
     public void parseAndUpdate(String request, String payLoad, String result) {
         final Double LOCATION_THRESHOLD = .0000001;
 
-        JsonParser parser = new JsonParser();
         JsonObject jsonObject = null;
 
         try {

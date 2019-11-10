@@ -73,7 +73,7 @@ public class TeslaCommandExtension extends AbstractConsoleCommandExtension {
         this.teslaAccountDiscoveryService = ds;
     }
 
-    protected void unetTeslaAccountDiscoveryService(TeslaAccountDiscoveryService ds) {
+    protected void unsetTeslaAccountDiscoveryService(TeslaAccountDiscoveryService ds) {
         this.teslaAccountDiscoveryService = null;
     }
 
