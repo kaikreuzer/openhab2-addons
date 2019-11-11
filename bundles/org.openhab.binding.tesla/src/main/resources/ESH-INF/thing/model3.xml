@@ -126,9 +126,6 @@
 				<label>Valet PIN</label>
 				<description>PIN to use when enabling Valet Mode</description>
 			</parameter>
-			<!-- this streaming API seems to be not working anymore, so let's remove this for now <parameter name="enableEvents" type="boolean" 
-				required="false"> <default>false</default> <label>Enable Events</label> <description>Automatically receive updates from the 
-				vehicle through the account.</description> </parameter> -->
 			<parameter name="allowWakeup" type="boolean" required="false">
 				<default>false</default>
 				<label>Allow Wake-Up</label>

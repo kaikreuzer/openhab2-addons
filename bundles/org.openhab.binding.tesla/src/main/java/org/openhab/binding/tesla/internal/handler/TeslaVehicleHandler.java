@@ -148,8 +148,10 @@ public class TeslaVehicleHandler extends BaseThingHandler {
         updateStatus(ThingStatus.UNKNOWN);
         allowWakeUp = (boolean) getConfig().get(TeslaBindingConstants.CONFIG_ALLOWWAKEUP);
 
-        // the streaming API seems to be broken - let's keep the code, if it comes back one day
-        // enableEvents = (boolean) getConfig().get(TeslaBindingConstants.CONFIG_ENABLEEVENTS);
+        Object eventsCfg = getConfig().get(TeslaBindingConstants.CONFIG_ENABLEEVENTS);
+        if (eventsCfg != null) {
+            enableEvents = (boolean) eventsCfg;
+        }
 
         account = (TeslaAccountHandler) getBridge().getHandler();
         lock = new ReentrantLock();
