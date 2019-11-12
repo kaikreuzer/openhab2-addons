@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.measure.quantity.Temperature;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
@@ -37,11 +38,12 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.IncreaseDecreaseType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.PercentType;
+import org.eclipse.smarthome.core.library.types.QuantityType;
 import org.eclipse.smarthome.core.library.types.StringType;
+import org.eclipse.smarthome.core.library.unit.SIUnits;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -226,6 +228,7 @@ public class TeslaVehicleHandler extends BaseThingHandler {
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
+        logger.debug("handleCommand {} {}", channelUID, command);
         String channelID = channelUID.getId();
         TeslaChannelSelector selector = TeslaChannelSelector.getValueSelectorFromChannelID(channelID);
 
@@ -256,15 +259,23 @@ public class TeslaVehicleHandler extends BaseThingHandler {
                             break;
                         }
                         case TEMPERATURE: {
-                            if (command instanceof DecimalType) {
-                                if (getThing().getProperties().containsKey("temperatureunits")
-                                        && getThing().getProperties().get("temperatureunits").equals("F")) {
-                                    float fTemp = ((DecimalType) command).floatValue();
-                                    float cTemp = ((fTemp - 32.0f) * 5.0f / 9.0f);
-                                    setTemperature(cTemp);
-                                } else {
-                                    setTemperature(((DecimalType) command).floatValue());
-                                }
+                            QuantityType<Temperature> quantity = commandToQuantityType(command).toUnit(SIUnits.CELSIUS);
+                            if (quantity != null) {
+                                setTemperature(quantity.floatValue());
+                            }
+                            break;
+                        }
+                        case DRIVER_TEMP: {
+                            QuantityType<Temperature> quantity = commandToQuantityType(command).toUnit(SIUnits.CELSIUS);
+                            if (quantity != null) {
+                                setDriverTemperature(quantity.floatValue());
+                            }
+                            break;
+                        }
+                        case PASSENGER_TEMP: {
+                            QuantityType<Temperature> quantity = commandToQuantityType(command).toUnit(SIUnits.CELSIUS);
+                            if (quantity != null) {
+                                setPassengerTemperature(quantity.floatValue());
                             }
                             break;
                         }
@@ -591,6 +602,23 @@ public class TeslaVehicleHandler extends BaseThingHandler {
         requestData(CLIMATE_STATE);
     }
 
+    public void setDriverTemperature(float temperature) {
+        JsonObject payloadObject = new JsonObject();
+        payloadObject.addProperty("driver_temp", temperature);
+        payloadObject.addProperty("passenger_temp",
+                climateState != null ? climateState.passenger_temp_setting : temperature);
+        sendCommand(COMMAND_SET_TEMP, gson.toJson(payloadObject), account.commandTarget);
+        requestData(CLIMATE_STATE);
+    }
+
+    public void setPassengerTemperature(float temperature) {
+        JsonObject payloadObject = new JsonObject();
+        payloadObject.addProperty("passenger_temp", temperature);
+        payloadObject.addProperty("driver_temp", climateState != null ? climateState.driver_temp_setting : temperature);
+        sendCommand(COMMAND_SET_TEMP, gson.toJson(payloadObject), account.commandTarget);
+        requestData(CLIMATE_STATE);
+    }
+
     public void openFrunk() {
         JsonObject payloadObject = new JsonObject();
         payloadObject.addProperty("which_trunk", "front");
@@ -877,6 +905,14 @@ public class TeslaVehicleHandler extends BaseThingHandler {
         } catch (Exception p) {
             logger.error("An exception occurred while parsing data received from the vehicle: '{}'", p.getMessage());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    protected QuantityType<Temperature> commandToQuantityType(Command command) {
+        if (command instanceof QuantityType) {
+            return (QuantityType<Temperature>) command;
+        }
+        return new QuantityType<Temperature>(new BigDecimal(command.toString()), SIUnits.CELSIUS);
     }
 
     protected Runnable slowStateRunnable = () -> {

@@ -241,7 +241,7 @@
 		<item-type>Number:Temperature</item-type>
 		<label>Driver Temperature</label>
 		<description>Indicates the auto conditioning temperature set at the driver's side</description>
-		<state pattern="%.1f %unit%" readOnly="true"></state>
+		<state pattern="%.1f %unit%"></state>
 	</channel-type>
 	<channel-type id="eventstamp" advanced="true">
 		<item-type>DateTime</item-type>
@@ -441,7 +441,7 @@
 		<item-type>Number</item-type>
 		<label>Passenger Temperature</label>
 		<description>Indicates the auto conditioning temperature set at the passenger's side</description>
-		<state readOnly="true"></state>
+		<state pattern="%.1f %unit%"></state>
 	</channel-type>
 	<channel-type id="passengerfrontdoor" advanced="true">
 		<item-type>Contact</item-type>
