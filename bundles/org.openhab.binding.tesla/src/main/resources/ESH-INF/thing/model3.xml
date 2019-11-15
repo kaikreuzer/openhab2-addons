@@ -106,7 +106,7 @@
 			<channel id="soc" typeId="soc" />
 			<channel id="speed" typeId="speed" />
 			<channel id="state" typeId="state" />
-			<channel id="temperature" typeId="temperature" />
+			<channel id="combinedtemp" typeId="combinedtemp" />
 			<channel id="timetofullcharge" typeId="timetofullcharge" />
 			<channel id="tripcharging" typeId="tripcharging" />
 			<channel id="usablebatterylevel" typeId="usablebatterylevel" />

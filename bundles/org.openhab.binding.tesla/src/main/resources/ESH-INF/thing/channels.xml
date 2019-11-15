@@ -241,7 +241,7 @@
 		<item-type>Number:Temperature</item-type>
 		<label>Driver Temperature</label>
 		<description>Indicates the auto conditioning temperature set at the driver's side</description>
-		<state pattern="%.1f %unit%" readOnly="true"></state>
+		<state pattern="%.1f %unit%"></state>
 	</channel-type>
 	<channel-type id="eventstamp" advanced="true">
 		<item-type>DateTime</item-type>
@@ -441,7 +441,7 @@
 		<item-type>Number</item-type>
 		<label>Passenger Temperature</label>
 		<description>Indicates the auto conditioning temperature set at the passenger's side</description>
-		<state readOnly="true"></state>
+		<state pattern="%.1f %unit%"></state>
 	</channel-type>
 	<channel-type id="passengerfrontdoor" advanced="true">
 		<item-type>Contact</item-type>
@@ -592,11 +592,11 @@
 		<description>Open or close the sunroof to provided % (0 closed, 100 fully open)</description>
 		<state pattern="%d %%"></state>
 	</channel-type>
-	<channel-type id="temperature" advanced="true">
+	<channel-type id="combinedtemp" advanced="true">
 		<item-type>Number:Temperature</item-type>
-		<label>Temperature</label>
-		<description>Set the temperature of the autoconditioning system. The temperature for the
-				driver and passenger will be synced.</description>
+		<label>Combined Temperature</label>
+		<description>Combined average temperature of the driver and passenger autoconditioning settings. The temperature for the
+				driver and passenger will be synced when set.</description>
 		<state pattern="%.1f %unit%"></state>
 	</channel-type>
 	<channel-type id="timetofullcharge" advanced="true">

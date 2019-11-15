@@ -113,7 +113,7 @@
 			<channel id="steeringwheelheater" typeId="steeringwheelheater" />
 			<channel id="sunroof" typeId="sunroof" />
 			<channel id="sunroofstate" typeId="sunroofstate" />
-			<channel id="temperature" typeId="temperature" />
+			<channel id="combinedtemp" typeId="combinedtemp" />
 			<channel id="timetofullcharge" typeId="timetofullcharge" />
 			<channel id="tripcharging" typeId="tripcharging" />
 			<channel id="usablebatterylevel" typeId="usablebatterylevel" />

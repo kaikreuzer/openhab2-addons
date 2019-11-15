@@ -929,7 +929,7 @@ public class TeslaChannelSelectorProxy {
         },
         SUN_ROOF_STATE("sun_roof_state", "sunroofstate", StringType.class, false),
         SUN_ROOF("sun_roof_percent_open", "sunroof", PercentType.class, false),
-        TEMPERATURE(null, "temperature", DecimalType.class, false) {
+        COMBINED_TEMP(null, "combinedtemp", DecimalType.class, false) {
             @Override
             public State getState(String s, TeslaChannelSelectorProxy proxy, Map<String, String> properties) {
                 State someState = super.getState(s);

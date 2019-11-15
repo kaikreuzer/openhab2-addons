@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.measure.quantity.Temperature;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
@@ -37,11 +39,12 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.IncreaseDecreaseType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.PercentType;
+import org.eclipse.smarthome.core.library.types.QuantityType;
 import org.eclipse.smarthome.core.library.types.StringType;
+import org.eclipse.smarthome.core.library.unit.SIUnits;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
@@ -226,6 +229,7 @@ public class TeslaVehicleHandler extends BaseThingHandler {
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
+        logger.debug("handleCommand {} {}", channelUID, command);
         String channelID = channelUID.getId();
         TeslaChannelSelector selector = TeslaChannelSelector.getValueSelectorFromChannelID(channelID);
 
@@ -255,16 +259,24 @@ public class TeslaVehicleHandler extends BaseThingHandler {
                             }
                             break;
                         }
-                        case TEMPERATURE: {
-                            if (command instanceof DecimalType) {
-                                if (getThing().getProperties().containsKey("temperatureunits")
-                                        && getThing().getProperties().get("temperatureunits").equals("F")) {
-                                    float fTemp = ((DecimalType) command).floatValue();
-                                    float cTemp = ((fTemp - 32.0f) * 5.0f / 9.0f);
-                                    setTemperature(cTemp);
-                                } else {
-                                    setTemperature(((DecimalType) command).floatValue());
-                                }
+                        case COMBINED_TEMP: {
+                            QuantityType<Temperature> quantity = commandToQuantityType(command);
+                            if (quantity != null) {
+                                setCombinedTemperature(quanityToRoundedFloat(quantity));
+                            }
+                            break;
+                        }
+                        case DRIVER_TEMP: {
+                            QuantityType<Temperature> quantity = commandToQuantityType(command);
+                            if (quantity != null) {
+                                setDriverTemperature(quanityToRoundedFloat(quantity));
+                            }
+                            break;
+                        }
+                        case PASSENGER_TEMP: {
+                            QuantityType<Temperature> quantity = commandToQuantityType(command);
+                            if (quantity != null) {
+                                setPassengerTemperature(quanityToRoundedFloat(quantity));
                             }
                             break;
                         }
@@ -583,12 +595,34 @@ public class TeslaVehicleHandler extends BaseThingHandler {
         requestData(VEHICLE_STATE);
     }
 
-    public void setTemperature(float temperature) {
+    /**
+     * Sets the driver and passenger temperatures.
+     *
+     * While setting different temperature values is supported by the API, in practice this does not always work
+     * reliably, possibly if the the
+     * only reliable method is to set the driver and passenger temperature to the same value
+     *
+     * @param driverTemperature in Celsius
+     * @param passenegerTemperature in Celsius
+     */
+    public void setTemperature(float driverTemperature, float passenegerTemperature) {
         JsonObject payloadObject = new JsonObject();
-        payloadObject.addProperty("driver_temp", temperature);
-        payloadObject.addProperty("passenger_temp", temperature);
+        payloadObject.addProperty("driver_temp", driverTemperature);
+        payloadObject.addProperty("passenger_temp", passenegerTemperature);
         sendCommand(COMMAND_SET_TEMP, gson.toJson(payloadObject), account.commandTarget);
         requestData(CLIMATE_STATE);
+    }
+
+    public void setCombinedTemperature(float temperature) {
+        setTemperature(temperature, temperature);
+    }
+
+    public void setDriverTemperature(float temperature) {
+        setTemperature(temperature, climateState != null ? climateState.passenger_temp_setting : temperature);
+    }
+
+    public void setPassengerTemperature(float temperature) {
+        setTemperature(climateState != null ? climateState.driver_temp_setting : temperature, temperature);
     }
 
     public void openFrunk() {
@@ -616,12 +650,12 @@ public class TeslaVehicleHandler extends BaseThingHandler {
             payloadObject.addProperty("password", String.format("%04d", pin));
         }
         sendCommand(COMMAND_SET_VALET_MODE, gson.toJson(payloadObject), account.commandTarget);
-        requestData(CLIMATE_STATE);
+        requestData(VEHICLE_STATE);
     }
 
     public void resetValetPin() {
         sendCommand(COMMAND_RESET_VALET_PIN, account.commandTarget);
-        requestData(CLIMATE_STATE);
+        requestData(VEHICLE_STATE);
     }
 
     public void setMaxRangeCharging(boolean b) {
@@ -745,6 +779,9 @@ public class TeslaVehicleHandler extends BaseThingHandler {
                     }
                     case CLIMATE_STATE: {
                         climateState = gson.fromJson(result, ClimateState.class);
+                        BigDecimal avgtemp = roundBigDecimal(new BigDecimal(
+                                (climateState.driver_temp_setting + climateState.passenger_temp_setting) / 2.0f));
+                        updateState(CHANNEL_COMBINED_TEMP, new QuantityType<>(avgtemp, SIUnits.CELSIUS));
                         break;
                     }
                     case "queryVehicle": {
@@ -877,6 +914,22 @@ public class TeslaVehicleHandler extends BaseThingHandler {
         } catch (Exception p) {
             logger.error("An exception occurred while parsing data received from the vehicle: '{}'", p.getMessage());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    protected QuantityType<Temperature> commandToQuantityType(Command command) {
+        if (command instanceof QuantityType) {
+            return ((QuantityType<Temperature>) command).toUnit(SIUnits.CELSIUS);
+        }
+        return new QuantityType<Temperature>(new BigDecimal(command.toString()), SIUnits.CELSIUS);
+    }
+
+    protected float quanityToRoundedFloat(QuantityType<Temperature> quantity) {
+        return roundBigDecimal(quantity.toBigDecimal()).floatValue();
+    }
+
+    protected BigDecimal roundBigDecimal(BigDecimal value) {
+        return value.setScale(1, RoundingMode.HALF_EVEN);
     }
 
     protected Runnable slowStateRunnable = () -> {
